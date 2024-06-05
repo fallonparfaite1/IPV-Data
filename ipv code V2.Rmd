@@ -1,0 +1,128 @@
+---
+title: "tiktokipv"
+output: pdf_document
+---
+```{r}
+library(readr)
+install.packages("tibble")
+
+file_path <- "/Users/fallon/Desktop/mastersheet_IPV.csv"
+
+# Load the CSV file
+mastersheet <- read_csv(file_path)
+
+# View the first few rows of the data
+head(data)
+```
+
+
+```{r setup, include=T}
+library(tidytext)
+
+get_sentiments("nrc")
+```
+
+
+```{r}
+
+library(dplyr)
+library(stringr)
+
+
+mastersheet$Comment %>%
+                        str_remove_all(" ?(f|ht)(tp)(s?)(://)(.*)[.|/](.*)") %>%
+                        str_replace_all("&amp;", "and") %>%
+                        str_remove_all("[[:punct:]]") %>%
+                        str_remove_all("@") %>%
+                        str_remove_all("\\d+\\w*\\d*") %>%
+                        str_remove_all("#[[:alnum:]]+") %>%
+                        str_replace_all("\\\n", " ") %>%
+                        str_to_lower() %>%
+                        str_trim("both")
+ 
+   
+
+ 
+
+```
+
+
+remove emojis
+```{r }
+mastersheet$Comment <- sapply(mastersheet$Comment,function(row) iconv(row, "latin1", "ASCII", sub=))
+```
+
+remove blank rows
+
+
+```{r}
+mastersheet <-  mastersheet[!(is.na(mastersheet$Comment) | mastersheet$Comment==""), ]
+```
+
+```{r}
+str(mastersheet)
+```
+
+
+```{r}
+library(tibble)
+library(dplyr)
+
+nrc_lexicon <- textdata::lexicon_nrc()
+
+mastersheet_clean<- as_tibble(mastersheet)
+
+tokenized_data <- mastersheet %>%
+  unnest_tokens(word, Comment)
+
+sentiment_data <- tokenized_data %>%
+  inner_join(nrc_lexicon, by = "word")
+
+# View the sentiment data
+print(sentiment_data)
+
+# Summarize sentiment counts
+sentiment_summary <- sentiment_data %>%
+  count(sentiment) %>%
+  arrange(desc(n))
+
+print(sentiment_summary)
+```
+
+```{r}
+# Count the frequency of each word
+word_frequencies <- sentiment_data %>%
+  count(word, sort = TRUE)
+
+# View the word frequencies
+print(word_frequencies)
+```
+
+```{r}
+words_to_remove <- c("bitch", "shit")
+word_frequencies_filtered <- word_frequencies %>%
+  filter(!word %in% words_to_remove)
+```
+
+
+
+```{r}
+install.packages("wordcloud")
+install.packages("RColorBrewer")
+
+library(tidytext)
+library(dplyr)
+library(wordcloud)
+library(RColorBrewer)
+```
+
+
+```{r}
+
+wordcloud(words = word_frequencies_filtered$word, 
+          freq = word_frequencies_filtered$n, 
+          min.freq = 1, 
+          max.words = 200, 
+          random.order = FALSE, 
+          colors = brewer.pal(12, "Paired"))
+```
